@@ -1,4 +1,6 @@
-# [DepthNet training on Still Box](http://perso.ensta-paristech.fr/~pinard/depthnet/)
+# DepthNet training on Still Box
+
+###[Project page](http://perso.ensta-paristech.fr/~pinard/depthnet/)
 
 This code can replicate the results of our paper that was published in UAVg-17.
 
@@ -21,7 +23,9 @@ See our second paper for information about using this code on real videos with s
 
 DepthNet is a network designed to infer Depth Map directly from a pair of stabilized image.
 
-More info can be found on [the project page](http://perso.ensta-paristech.fr/~pinard/depthnet/)
+* No information is given about movement direction
+* DepthNet is Fully Convolutional, which means it is completely robust to optical center fault
+* This network only works for pinhole-like pictures
 
 ## Still Box
 
