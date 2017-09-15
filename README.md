@@ -1,6 +1,6 @@
 # DepthNet training on Still Box
 
-###[Project page](http://perso.ensta-paristech.fr/~pinard/depthnet/)
+### [Project page](http://perso.ensta-paristech.fr/~pinard/depthnet/)
 
 This code can replicate the results of our paper that was published in UAVg-17.
 
