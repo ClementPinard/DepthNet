@@ -17,7 +17,7 @@ See our second paper for information about using this code on real videos with s
 
 *Click Below for video*
 
-[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/nU-Gv_I7zhg/0.jpg)](http://www.youtube.com/watch?v=nU-Gv_I7zhg)
+[![youtube video](http://img.youtube.com/vi/nU-Gv_I7zhg/0.jpg)](http://www.youtube.com/watch?v=nU-Gv_I7zhg)
 
 ## DepthNet
 
@@ -68,6 +68,20 @@ python3 train.py -j8 --lr 0.001 /path/to/still_box/512/ --log-output --activatio
 ```
 
 > **Note**: You can skip 128 and 256 training if you don't have time, results will be only slightly worse. However, you need to do 64 training first as stated by our first paper. This might has something to do with either the size of 64 dataset (in terms of scene numbers) or the fact that feature maps are reduced down to 1x1 making last convolution a FC equivalent operation
+
+### Pretrained networks
+
+Best results were obtained with elu for depth activation (not mentionned in the original paper), along with BatchNorm.
+
+|Name                         | training set | Error (m)|                                                                                               |
+|:----------------------------|-------------:|---------:|-----------------------------------------------------------------------------------------------|
+|`DepthNet_elu_bn_64.pth.tar` |            64|     4.65 |[Link](http://perso.ensta-paristech.fr/~pinard/depthnet/pretrained/DepthNet_elu_bn_64.pth.tar) |
+|`DepthNet_elu_bn_128.pth.tar`|           128|     3.08 |[Link](http://perso.ensta-paristech.fr/~pinard/depthnet/pretrained/DepthNet_elu_bn_128.pth.tar)|
+|`DepthNet_elu_bn_256.pth.tar`|           256|     2.29 |[Link](http://perso.ensta-paristech.fr/~pinard/depthnet/pretrained/DepthNet_elu_bn_256.pth.tar)|
+|`DepthNet_elu_bn_512.pth.tar`|           512|     1.97 |[Link](http://perso.ensta-paristech.fr/~pinard/depthnet/pretrained/DepthNet_elu_bn_512.pth.tar)|
+
+All the networks have the same size and same structure.
+
 
 ### Custom FOV and focal length
 
