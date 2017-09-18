@@ -108,6 +108,8 @@ If you can resize your test pictures, thanks to its fully convolutional architec
 
 `resized_w = f/2*tan(pi*fov/360)`
 
+That way, you won't have to make a dedicated training or even download the still box dataset
+
 ----
 > **/!\ These equations are only valid with pinhole equivalent cameras. Be sure to correct distortion before using DepthNet**
 
