@@ -44,8 +44,8 @@ Still box is a dataset created specifically for supervised training of depth map
 [sudo] pip3 install -r requirements.txt
 ```
 
-If you want to log some outputs from the validation set with the `--log-output` option, you need openCV3 to convert depth to RGB with a rainbow colormap. 
-> *TODO: we should still log output as a greyscale if cv import fails*
+If you want to log some outputs from the validation set with the `--log-output` option, you need openCV python bindings to convert depth to RGB with a rainbow colormap. 
+> *If you don't have opencv, grayscales will be logged*
 
 ### Usage
 

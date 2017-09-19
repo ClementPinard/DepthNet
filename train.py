@@ -104,10 +104,6 @@ def main():
                                     weight_decay=args.weight_decay,
                                     dampening=args.momentum)
 
-    if args.evaluate:
-        best_error = validate(val_loader, model)
-        return
-
     with open(os.path.join(args.save_path, args.log_summary), 'w') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
         writer.writerow(['train_loss', 'train_depth_error', 'normalized_train_depth_error', 'depth_error', 'normalized_depth_error'])
@@ -118,6 +114,12 @@ def main():
 
     term_logger = TermLogger(n_epochs=args.epochs, train_size=min(len(train_loader), args.epoch_size), test_size=len(val_loader))
     term_logger.epoch_bar.start()
+
+    if args.evaluate:
+        depth_error, normalized = validate(val_loader, model, 0, term_logger, output_writers)
+        term_logger.test_writer.write(' * Depth error : {:.3f}, normalized : {:.3f}'.format(depth_error, normalized))
+        return
+
     for epoch in range(args.epochs):
         term_logger.epoch_bar.update(epoch)
         util.adjust_learning_rate(optimizer, epoch)
@@ -248,13 +250,11 @@ def validate(val_loader, model, epoch, logger, output_writers=[]):
         output = model(input_var)
         if log_outputs and i < len(output_writers):  # log first output of 3 first batches
             ratio = target.size(2)/target.size(1)
-            w = 256
-            h = int(w/ratio)
             if epoch == 0:
-                output_writers[i].add_image('GroundTruth', util.tensor2array(target[0].cpu(), (w, h), max_value=100), 0)
-                output_writers[i].add_image('Inputs', util.tensor2array(input[0][0].cpu(), (w, h)), 0)
-                output_writers[i].add_image('Inputs', util.tensor2array(input[1][0].cpu(), (w, h)), 1)
-            output_writers[i].add_image('DepthNet Outputs', util.tensor2array(output.data[0].cpu(), (w, h), max_value=100), epoch)
+                output_writers[i].add_image('GroundTruth', util.tensor2array(target[0].cpu(), max_value=100), 0)
+                output_writers[i].add_image('Inputs', util.tensor2array(input[0][0].cpu()), 0)
+                output_writers[i].add_image('Inputs', util.tensor2array(input[1][0].cpu()), 1)
+            output_writers[i].add_image('DepthNet Outputs', util.tensor2array(output.data[0].cpu(), max_value=100), epoch)
         depth2_norm_error = metric_loss(output, target_var, normalize=True)
         depth2_metric_error = metric_loss(output, target_var, normalize=False)
         # record depth error
