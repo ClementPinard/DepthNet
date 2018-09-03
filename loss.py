@@ -1,13 +1,12 @@
-import torch
 import torch.nn as nn
-import util
+import torch.nn.functional as F
 
 
 def depth_metric_reconstruction_loss(depth, target, weights=None, loss='L1', normalize=False):
     def one_scale(depth, target, loss_function, normalize):
         b, h, w = depth.size()
 
-        target_scaled = nn.functional.adaptive_avg_pool2d(target, (h, w))
+        target_scaled = F.interpolate(target.unsqueeze(1), size=(h, w), mode='area')[:,0]
 
         diff = depth-target_scaled
 

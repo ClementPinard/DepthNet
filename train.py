@@ -13,7 +13,7 @@ import models
 import datasets
 from loss import depth_metric_reconstruction_loss as metric_loss
 from terminal_logger import TermLogger
-from tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 
 import util
 from util import AverageMeter
@@ -24,6 +24,7 @@ util.set_arguments(parser)
 
 best_error = -1
 n_iter = 0
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 def main():
@@ -44,18 +45,18 @@ def main():
     normalize = transforms.Normalize(mean=mean,
                                      std=std)
     input_transform = transforms.Compose([
-            co_transforms.ArrayToTensor(),
-            transforms.Normalize(mean=[0, 0, 0], std=[255, 255, 255]),
-            normalize
-            ])
+        co_transforms.ArrayToTensor(),
+        transforms.Normalize(mean=[0, 0, 0], std=[255, 255, 255]),
+        normalize
+    ])
     target_transform = transforms.Compose([
-            co_transforms.Clip(0, 100),
-            co_transforms.ArrayToTensor()
-            ])
+        co_transforms.Clip(0, 100),
+        co_transforms.ArrayToTensor()
+    ])
     co_transform = co_transforms.Compose([
-            co_transforms.RandomVerticalFlip(),
-            co_transforms.RandomHorizontalFlip()
-            ])
+        co_transforms.RandomVerticalFlip(),
+        co_transforms.RandomHorizontalFlip()
+    ])
 
     print("=> fetching scenes in '{}'".format(args.data))
     train_set, val_set = datasets.still_box(
@@ -67,8 +68,8 @@ def main():
         seed=args.seed
     )
     print('{} samples found, {} train scenes and {} validation samples '.format(len(val_set)+len(train_set),
-                                                                          len(train_set),
-                                                                          len(val_set)))
+                                                                                len(train_set),
+                                                                                len(val_set)))
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=args.batch_size, shuffle=True,
         num_workers=args.workers, pin_memory=True)
@@ -89,7 +90,8 @@ def main():
         print("=> creating model '{}'".format(args.arch))
         model = models.DepthNet(batch_norm=args.bn, clamp=args.clamp, depth_activation=args.activation_function)
 
-    model = model.cuda()
+    model = model.to(device)
+    model = torch.nn.DataParallel(model)
     cudnn.benchmark = True
 
     assert(args.solver in ['adam', 'sgd'])
@@ -103,6 +105,10 @@ def main():
                                     momentum=args.momentum,
                                     weight_decay=args.weight_decay,
                                     dampening=args.momentum)
+
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
+                                                     milestones=[19,30,44,53],
+                                                     gamma=0.3)
 
     with open(os.path.join(args.save_path, args.log_summary), 'w') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
@@ -122,7 +128,7 @@ def main():
 
     for epoch in range(args.epochs):
         term_logger.epoch_bar.update(epoch)
-        util.adjust_learning_rate(optimizer, epoch)
+        scheduler.step()
 
         # train for one epoch
         term_logger.reset_train_bar()
@@ -152,7 +158,7 @@ def main():
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
-                'best_EPE': best_error,
+                'best_error': best_error,
                 'bn': args.bn,
                 'with_confidence': False,
                 'activation_function': args.activation_function,
@@ -176,8 +182,6 @@ def train(train_loader, model, optimizer, epoch_size, term_logger, train_writer)
     depth2_metric_errors = AverageMeter()
     depth2_normalized_errors = AverageMeter()
 
-    if epoch_size == 0:
-        epoch_size = len(train_loader)
     # switch to train mode
     model.train()
 
@@ -186,22 +190,20 @@ def train(train_loader, model, optimizer, epoch_size, term_logger, train_writer)
     for i, (input, target, _) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
-        target = target.cuda(async=True)
-        input = [i.cuda() for i in input]
-        input_var = torch.autograd.Variable(torch.cat(input, 1))
-        target_var = torch.autograd.Variable(target)
+        target = target.to(device)
+        input = torch.cat(input,1).to(device)
 
         # compute output
-        output = model(input_var)
+        output = model(input)
 
-        loss = metric_loss(output, target_var, weights=(0.32, 0.08, 0.02, 0.01, 0.005), loss=args.loss)
-        depth2_norm_error = metric_loss(output[0], target_var, normalize=True)
-        depth2_metric_error = metric_loss(output[0], target_var, normalize=False)
+        loss = metric_loss(output, target, weights=(0.32, 0.08, 0.02, 0.01, 0.005), loss=args.loss)
+        depth2_norm_error = metric_loss(output[0], target, normalize=True)
+        depth2_metric_error = metric_loss(output[0], target, normalize=False)
         # record loss and EPE
-        losses.update(loss.data[0], target.size(0))
-        train_writer.add_scalar('train_loss', loss.data[0], n_iter)
-        depth2_metric_errors.update(depth2_metric_error.data[0], target.size(0))
-        depth2_normalized_errors.update(depth2_norm_error.data[0], target.size(0))
+        losses.update(loss.item(), target.size(0))
+        train_writer.add_scalar('train_loss', loss.item(), n_iter)
+        depth2_metric_errors.update(depth2_metric_error.item(), target.size(0))
+        depth2_normalized_errors.update(depth2_norm_error.item(), target.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -214,7 +216,7 @@ def train(train_loader, model, optimizer, epoch_size, term_logger, train_writer)
 
         with open(os.path.join(args.save_path, args.log_full), 'a') as csvfile:
             writer = csv.writer(csvfile, delimiter='\t')
-            writer.writerow([loss.data[0], depth2_metric_error.data[0]])
+            writer.writerow([loss.item(), depth2_metric_error.item()])
         term_logger.train_bar.update(i+1)
         if i % args.print_freq == 0:
             term_logger.train_writer.write(
@@ -231,6 +233,7 @@ def train(train_loader, model, optimizer, epoch_size, term_logger, train_writer)
     return losses.avg, depth2_metric_errors.avg, depth2_normalized_errors.avg
 
 
+@torch.no_grad()
 def validate(val_loader, model, epoch, logger, output_writers=[]):
     batch_time = AverageMeter()
     depth2_metric_errors = AverageMeter()
@@ -242,24 +245,21 @@ def validate(val_loader, model, epoch, logger, output_writers=[]):
     end = time.time()
 
     for i, (input, target, _) in enumerate(val_loader):
-        target = target.cuda(async=True)
-        input_tensors = [i.cuda() for i in input]
-        input_var = torch.autograd.Variable(torch.cat(input_tensors, 1), volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
+        target = target.to(device)
+        input = torch.cat(input, 1).to(device)
         # compute output
-        output = model(input_var)
+        output = model(input)
         if log_outputs and i < len(output_writers):  # log first output of 3 first batches
-            ratio = target.size(2)/target.size(1)
             if epoch == 0:
-                output_writers[i].add_image('GroundTruth', util.tensor2array(target[0].cpu(), max_value=100), 0)
-                output_writers[i].add_image('Inputs', util.tensor2array(input[0][0].cpu()), 0)
-                output_writers[i].add_image('Inputs', util.tensor2array(input[1][0].cpu()), 1)
-            output_writers[i].add_image('DepthNet Outputs', util.tensor2array(output.data[0].cpu(), max_value=100), epoch)
-        depth2_norm_error = metric_loss(output, target_var, normalize=True)
-        depth2_metric_error = metric_loss(output, target_var, normalize=False)
+                output_writers[i].add_image('GroundTruth', util.tensor2array(target[0], max_value=100), 0)
+                output_writers[i].add_image('Inputs', util.tensor2array(input[0,:3]), 0)
+                output_writers[i].add_image('Inputs', util.tensor2array(input[0,3:]), 1)
+            output_writers[i].add_image('DepthNet Outputs', util.tensor2array(output[0], max_value=100), epoch)
+        depth2_norm_error = metric_loss(output, target, normalize=True)
+        depth2_metric_error = metric_loss(output, target, normalize=False)
         # record depth error
-        depth2_norm_errors.update(depth2_norm_error.data[0], target.size(0))
-        depth2_metric_errors.update(depth2_metric_error.data[0], target.size(0))
+        depth2_norm_errors.update(depth2_norm_error.item(), target.size(0))
+        depth2_metric_errors.update(depth2_metric_error.item(), target.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -274,6 +274,7 @@ def validate(val_loader, model, epoch, logger, output_writers=[]):
                         depth2_error=depth2_metric_errors))
 
     return depth2_metric_errors.avg, depth2_norm_errors.avg
+
 
 if __name__ == '__main__':
     main()

@@ -1,5 +1,5 @@
 import torch.utils.data as data
-from scipy.ndimage import imread
+from imageio import imread
 import numpy as np
 
 

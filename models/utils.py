@@ -1,8 +1,8 @@
 from __future__ import division
-import math
 
 import torch
 import torch.nn as nn
+from torch.nn.init import xavier_normal_, constant_
 
 
 def conv(in_planes, out_planes, stride=1, batch_norm=False):
@@ -45,7 +45,7 @@ def post_process_depth(depth, activation_function=None, clamp=False):
 
     if clamp:
         depth = depth.clamp(10, 60)
-    
+
     return depth[:,0]
 
 
@@ -58,10 +58,9 @@ def adaptative_cat(out_conv, out_deconv, out_depth_up):
 def init_modules(net):
     for m in net.modules():
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-            n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-            m.weight.data.normal_(0, math.sqrt(2/n))
+            xavier_normal_(m.weight)
             if m.bias is not None:
-                m.bias.data.zero_()
+                constant_(m.bias, 0)
         elif isinstance(m, nn.BatchNorm2d):
-            m.weight.data.fill_(1)
-            m.bias.data.zero_()
+            constant_(m.weight, 1)
+            constant_(m.bias, 0)

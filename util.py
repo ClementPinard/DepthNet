@@ -118,7 +118,9 @@ def adjust_learning_rate(optimizer, epoch):
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr']/5
 
+
 def tensor2array(tensor, max_value=255):
+    tensor = tensor.detach().cpu()
     if tensor.ndimension() == 2 or tensor.size(0) == 1:
         try:
             import cv2
@@ -133,7 +135,8 @@ def tensor2array(tensor, max_value=255):
             if tensor.ndimension() == 2:
                 tensor.unsqueeze_(2)
             array = (tensor.expand(tensor.size(0), tensor.size(1), 3).numpy()/max_value).clip(0,1)
+        array = array.transpose(2,0,1)
 
     elif tensor.ndimension() == 3 and tensor.size(0) == 3:
-        array = 0.5 + tensor.numpy().transpose(1, 2, 0)*0.2
+        array = 0.5 + tensor.numpy()*0.2
     return array
