@@ -113,6 +113,17 @@ That way, you won't have to make a dedicated training or even download the still
 ----
 > **/!\ These equations are only valid with pinhole equivalent cameras. Be sure to correct distortion before using DepthNet**
 
+## Testing Inference
+
+The `run_inference.py` lets you run an inference on a folder of images, and save the depth maps in different visualizations.
+
+A simple still box scene of `512x512` pictures for testing can be downloaded [here](http://perso.ensta-paristech.fr/~pinard/stub_box.zip).
+Otherwise, any folder with a list of jpg images will do, provided you follow the guidelines above.
+
+```bash
+python3 run_inference.py --output-depth --no-resize --dataset-dir /path/to/stub_box --pretrained /path/to/DepthNet512 --frame-shift 3 --output-dir /path/to/save/outputs
+```
+
 
 ## Visualise training
 
