@@ -119,24 +119,31 @@ def adjust_learning_rate(optimizer, epoch):
             param_group['lr'] = param_group['lr']/5
 
 
-def tensor2array(tensor, max_value=255):
+def tensor2array(tensor, max_value=255, colormap='rainbow'):
     tensor = tensor.detach().cpu()
+    if max_value is None:
+        max_value = tensor.max().item()
     if tensor.ndimension() == 2 or tensor.size(0) == 1:
         try:
             import cv2
-            if cv2.__version__.startswith('3'):
+            if int(cv2.__version__[0]) >= 3:
                 color_cvt = cv2.COLOR_BGR2RGB
             else:  # 2.4
                 color_cvt = cv2.cv.CV_BGR2RGB
+            if colormap == 'rainbow':
+                colormap = cv2.COLORMAP_RAINBOW
+            elif colormap == 'bone':
+                colormap = cv2.COLORMAP_BONE
             array = (255*tensor.squeeze().numpy()/max_value).clip(0, 255).astype(np.uint8)
-            colormap = cv2.applyColorMap(array, cv2.COLORMAP_RAINBOW)
-            array = cv2.cvtColor(colormap, color_cvt).astype(np.float32)/255
+            colored_array = cv2.applyColorMap(array, colormap)
+            array = cv2.cvtColor(colored_array, color_cvt).astype(np.float32)/255
         except ImportError:
             if tensor.ndimension() == 2:
                 tensor.unsqueeze_(2)
             array = (tensor.expand(tensor.size(0), tensor.size(1), 3).numpy()/max_value).clip(0,1)
-        array = array.transpose(2,0,1)
+        array = array.transpose(2, 0, 1)
 
-    elif tensor.ndimension() == 3 and tensor.size(0) == 3:
-        array = 0.5 + tensor.numpy()*0.2
+    elif tensor.ndimension() == 3:
+        assert(tensor.size(0) == 3)
+        array = 0.5 + tensor.numpy()*0.5
     return array
