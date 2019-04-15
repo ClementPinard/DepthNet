@@ -3,6 +3,20 @@
 ### [Project page](http://perso.ensta-paristech.fr/~pinard/depthnet/)
 
 This code can replicate the results of our paper that was published in UAVg-17.
+If you use this repo in your work, please cite us with the following bibtex :
+
+```
+@Article{isprs-annals-IV-2-W3-67-2017,
+AUTHOR = {Pinard, C. and Chevalley, L. and Manzanera, A. and Filliat, D.},
+TITLE = {END-TO-END DEPTH FROM MOTION WITH STABILIZED MONOCULAR VIDEOS},
+JOURNAL = {ISPRS Annals of Photogrammetry, Remote Sensing and Spatial Information Sciences},
+VOLUME = {IV-2/W3},
+YEAR = {2017},
+PAGES = {67--74},
+URL = {https://www.isprs-ann-photogramm-remote-sens-spatial-inf-sci.net/IV-2-W3/67/2017/},
+DOI = {10.5194/isprs-annals-IV-2-W3-67-2017}
+}
+```
 
 ![depthnet](images/still.gif)
 
