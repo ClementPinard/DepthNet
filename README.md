@@ -47,8 +47,8 @@ DepthNet is a network designed to infer Depth Map directly from a pair of stabil
 
 Still box is a dataset created specifically for supervised training of depth map inference for stabilized aerial footage. It tries to mimic typical drone footages in static scenes, and depth is **impossible** to infer from a single image, as shapes get all kinds of sizes and positions.
 
-* You can download it [here](http://academictorrents.com/details/4d3a60ad3c9ceac7662735ba8e90fb467b43a3aa) (50GB torrent only for the moment, if you have a solution to host it, feel free to contact me !)
-* Still box `README.md` can be consulted [here](https://gist.github.com/ClementPinard/cae0ae658e516131135158d4fb9d2a1e)
+* You can download it [here](https://stillbox.ensta.fr)
+* The dataset webpage also provides a tutorial on how to read the data
 
 ## Training
 
